@@ -1,0 +1,10 @@
+# Zebra's SDK AAR is proprietary and must not be committed — see README.md.
+android/libs/*.aar
+
+.dart_tool/
+.packages
+build/
+.gradle/
+*.iml
+.idea/
+local.properties

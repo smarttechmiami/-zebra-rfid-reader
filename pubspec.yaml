@@ -1,0 +1,22 @@
+name: zebra_rfid_reader
+description: >
+  Flutter plugin wrapping Zebra's RFID API3 SDK for continuous multi-tag
+  inventory reads (e.g. RFD40 Bluetooth sled). Android-only.
+version: 0.1.0
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.10.0"
+dependencies:
+  flutter:
+    sdk: flutter
+  plugin_platform_interface: ^2.1.8
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.smarttechmiami.zebra_rfid_reader
+        pluginClass: ZebraRfidReaderPlugin

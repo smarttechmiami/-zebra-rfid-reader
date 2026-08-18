@@ -1,0 +1,57 @@
+group 'com.smarttechmiami.zebra_rfid_reader'
+version '0.1.0'
+
+buildscript {
+    ext.kotlin_version = '1.9.10'
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.1.0'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
+rootProject.allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+
+android {
+    namespace 'com.smarttechmiami.zebra_rfid_reader'
+    compileSdk 34
+
+    // The Zebra RFID API3 AAR isn't on any Maven repo — it must be dropped
+    // into android/libs/ manually (see README.md) and is resolved via
+    // flatDir below. AGP will not let a library module `implementation
+    // files(...)` a raw local .aar directly when this module itself is
+    // built as an AAR, so this is the supported workaround.
+    repositories {
+        flatDir {
+            dirs 'libs'
+        }
+    }
+
+    defaultConfig {
+        minSdk 29
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+}
+
+dependencies {
+    implementation(name: 'rfidapi3lib-2.0.5.292', ext: 'aar')
+}
