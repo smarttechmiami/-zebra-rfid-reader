@@ -255,3 +255,74 @@ class ZebraRfidReader {
   }
 }
 
+/// Utility for sending ZPL print and RFID encoding jobs to Zebra network printers
+/// (such as ZD500R) over TCP/IP (Port 9100).
+class ZebraNetworkPrinter {
+  ZebraNetworkPrinter._();
+
+  static final ZebraNetworkPrinter instance = ZebraNetworkPrinter._();
+
+  static const MethodChannel _methods = MethodChannel(
+    'zebra_rfid_reader/methods',
+  );
+
+  /// Tests TCP connection to Zebra printer at [ip]:[port].
+  Future<bool> testConnection({
+    String ip = '192.168.0.252',
+    int port = 9100,
+  }) async {
+    if (kIsWeb) {
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      return true;
+    }
+    try {
+      final bool? result = await _methods.invokeMethod<bool>(
+        'testPrinterConnection',
+        {'ip': ip, 'port': port},
+      );
+      return result ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Sends raw ZPL data to Zebra network printer at [ip]:[port].
+  Future<bool> sendZpl({
+    required String zpl,
+    String ip = '192.168.0.252',
+    int port = 9100,
+  }) async {
+    if (kIsWeb) {
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      return true;
+    }
+    try {
+      final bool? result = await _methods.invokeMethod<bool>(
+        'sendZplToPrinter',
+        {'ip': ip, 'port': port, 'zpl': zpl},
+      );
+      return result ?? false;
+    } catch (e) {
+      throw StateError('Failed to print ZPL to $ip:$port: $e');
+    }
+  }
+
+  /// Helper method to format and send a standard RFID tag encoding and label print job.
+  Future<bool> printAndEncodeRfidLabel({
+    required String epcTagData,
+    required String itemTitle,
+    String ip = '192.168.0.252',
+    int port = 9100,
+  }) async {
+    final String zpl = '''
+^XA
+^FO50,50^A0N,40,40^FD$itemTitle^FS
+^FO50,110^A0N,30,30^FDEPC: $epcTagData^FS
+^RFW,H^FD$epcTagData^FS
+^XZ
+''';
+    return sendZpl(zpl: zpl, ip: ip, port: port);
+  }
+}
+
+

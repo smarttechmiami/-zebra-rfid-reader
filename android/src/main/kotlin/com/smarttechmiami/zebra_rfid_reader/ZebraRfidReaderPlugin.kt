@@ -103,6 +103,17 @@ class ZebraRfidReaderPlugin : FlutterPlugin, MethodCallHandler {
       "startInventory" -> startInventory(result)
       "stopInventory" -> stopInventory(result)
       "readAllTagsOnce" -> readAllTagsOnce(call.argument<Int>("timeoutMs") ?: 3000, result)
+      "sendZplToPrinter" -> sendZplToPrinter(
+        call.argument<String>("ip") ?: "192.168.0.252",
+        call.argument<Int>("port") ?: 9100,
+        call.argument<String>("zpl") ?: "",
+        result
+      )
+      "testPrinterConnection" -> testPrinterConnection(
+        call.argument<String>("ip") ?: "192.168.0.252",
+        call.argument<Int>("port") ?: 9100,
+        result
+      )
       else -> result.notImplemented()
     }
   }
@@ -298,6 +309,40 @@ class ZebraRfidReaderPlugin : FlutterPlugin, MethodCallHandler {
           "antennaId" to tag.antennaID,
         )
       }
+  }
+
+  // ---------------------------------------------------------------------
+  // Network Printer Support
+  // ---------------------------------------------------------------------
+
+  private fun sendZplToPrinter(ip: String, port: Int, zpl: String, result: Result) {
+    Thread {
+      try {
+        val socket = java.net.Socket(ip, port)
+        socket.soTimeout = 5000
+        val os = socket.getOutputStream()
+        os.write(zpl.toByteArray(Charsets.UTF_8))
+        os.flush()
+        os.close()
+        socket.close()
+        mainHandler.post { result.success(true) }
+      } catch (e: Exception) {
+        mainHandler.post { result.error("PRINTER_ERROR", e.message, null) }
+      }
+    }.start()
+  }
+
+  private fun testPrinterConnection(ip: String, port: Int, result: Result) {
+    Thread {
+      try {
+        val socket = java.net.Socket()
+        socket.connect(java.net.InetSocketAddress(ip, port), 3000)
+        socket.close()
+        mainHandler.post { result.success(true) }
+      } catch (e: Exception) {
+        mainHandler.post { result.success(false) }
+      }
+    }.start()
   }
 
   // ---------------------------------------------------------------------
