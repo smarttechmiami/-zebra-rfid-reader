@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// A single tag read event from the reader.
 class ZebraTagRead {
@@ -256,7 +257,7 @@ class ZebraRfidReader {
 }
 
 /// Utility for sending ZPL print and RFID encoding jobs to Zebra network printers
-/// (such as ZD500R) over TCP/IP (Port 9100).
+/// (such as ZD500R) over TCP/IP (Port 9100), with persistent local storage.
 class ZebraNetworkPrinter {
   ZebraNetworkPrinter._();
 
@@ -266,11 +267,42 @@ class ZebraNetworkPrinter {
     'zebra_rfid_reader/methods',
   );
 
-  /// Tests TCP connection to Zebra printer at [ip]:[port].
-  Future<bool> testConnection({
-    String ip = '192.168.0.252',
-    int port = 9100,
+  static const String _keyIp = 'zebra_printer_ip';
+  static const String _keyPort = 'zebra_printer_port';
+  static const String defaultIp = '192.168.0.252';
+  static const int defaultPort = 9100;
+
+  /// Saves the printer IP address and Port permanently to device storage.
+  Future<void> savePrinterConfig({
+    required String ip,
+    int port = defaultPort,
   }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyIp, ip.trim());
+    await prefs.setInt(_keyPort, port);
+  }
+
+  /// Gets the saved printer IP address from device storage (defaults to '192.168.0.252').
+  Future<String> getSavedIp() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyIp) ?? defaultIp;
+  }
+
+  /// Gets the saved printer Port from device storage (defaults to 9100).
+  Future<int> getSavedPort() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_keyPort) ?? defaultPort;
+  }
+
+  /// Tests TCP connection to Zebra printer.
+  /// If [ip] or [port] are omitted, uses saved settings or defaults to 192.168.0.252:9100.
+  Future<bool> testConnection({
+    String? ip,
+    int? port,
+  }) async {
+    final targetIp = ip ?? await getSavedIp();
+    final targetPort = port ?? await getSavedPort();
+
     if (kIsWeb) {
       await Future<void>.delayed(const Duration(milliseconds: 300));
       return true;
@@ -278,7 +310,7 @@ class ZebraNetworkPrinter {
     try {
       final bool? result = await _methods.invokeMethod<bool>(
         'testPrinterConnection',
-        {'ip': ip, 'port': port},
+        {'ip': targetIp, 'port': targetPort},
       );
       return result ?? false;
     } catch (_) {
@@ -286,12 +318,16 @@ class ZebraNetworkPrinter {
     }
   }
 
-  /// Sends raw ZPL data to Zebra network printer at [ip]:[port].
+  /// Sends raw ZPL data to Zebra network printer.
+  /// If [ip] or [port] are omitted, uses saved settings or defaults to 192.168.0.252:9100.
   Future<bool> sendZpl({
     required String zpl,
-    String ip = '192.168.0.252',
-    int port = 9100,
+    String? ip,
+    int? port,
   }) async {
+    final targetIp = ip ?? await getSavedIp();
+    final targetPort = port ?? await getSavedPort();
+
     if (kIsWeb) {
       await Future<void>.delayed(const Duration(milliseconds: 500));
       return true;
@@ -299,11 +335,11 @@ class ZebraNetworkPrinter {
     try {
       final bool? result = await _methods.invokeMethod<bool>(
         'sendZplToPrinter',
-        {'ip': ip, 'port': port, 'zpl': zpl},
+        {'ip': targetIp, 'port': targetPort, 'zpl': zpl},
       );
       return result ?? false;
     } catch (e) {
-      throw StateError('Failed to print ZPL to $ip:$port: $e');
+      throw StateError('Failed to print ZPL to $targetIp:$targetPort: $e');
     }
   }
 
@@ -311,9 +347,12 @@ class ZebraNetworkPrinter {
   Future<bool> printAndEncodeRfidLabel({
     required String epcTagData,
     required String itemTitle,
-    String ip = '192.168.0.252',
-    int port = 9100,
+    String? ip,
+    int? port,
   }) async {
+    final targetIp = ip ?? await getSavedIp();
+    final targetPort = port ?? await getSavedPort();
+
     final String zpl = '''
 ^XA
 ^FO50,50^A0N,40,40^FD$itemTitle^FS
@@ -321,7 +360,7 @@ class ZebraNetworkPrinter {
 ^RFW,H^FD$epcTagData^FS
 ^XZ
 ''';
-    return sendZpl(zpl: zpl, ip: ip, port: port);
+    return sendZpl(zpl: zpl, ip: targetIp, port: targetPort);
   }
 }
 
