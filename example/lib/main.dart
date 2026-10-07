@@ -36,7 +36,7 @@ class _RFIDoraExampleAppState extends State<RFIDoraExampleApp> {
 
   @override
   void initState() {
-    super.override();
+    super.initState();
     _loadSavedPrinterIp();
     _listenToReaderStreams();
     _fetchReaders();
@@ -164,7 +164,7 @@ class _RFIDoraExampleAppState extends State<RFIDoraExampleApp> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: StartAxisAlignment.stretch,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Section 1: Zebra RFID Reader
             Card(
@@ -266,7 +266,7 @@ class _RFIDoraExampleAppState extends State<RFIDoraExampleApp> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
-                      mainAxisAlignment: MainState.between,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
                           'Scanned RFID Tags',
